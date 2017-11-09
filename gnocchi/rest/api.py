@@ -2038,6 +2038,7 @@ class V1Controller(object):
     def __init__(self):
         # FIXME(sileht): split controllers to avoid lazy loading
         from gnocchi.rest.aggregates import api as agg_api
+        from gnocchi.rest import influxdb
 
         self.sub_controllers = {
             "search": SearchController(),
@@ -2051,6 +2052,7 @@ class V1Controller(object):
             "capabilities": CapabilityController(),
             "status": StatusController(),
             "aggregates": agg_api.AggregatesController(),
+            "influxdb": influxdb.InfluxDBController(),
         }
         for name, ctrl in self.sub_controllers.items():
             setattr(self, name, ctrl)
