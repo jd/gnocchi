@@ -47,7 +47,7 @@ relationships of |resources|..
 .. _MySQL: http://mysql.org
 
 Architecture overview
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 Gnocchi consists of several services: a HTTP REST API (see :doc:`rest`), an
 optional statsd-compatible daemon (see :doc:`statsd`), and an asynchronous
@@ -71,7 +71,7 @@ scenarios: just start more Gnocchi daemons on independent servers.
 
 
 Understanding aggregation
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The way data points are aggregated is configurable on a per-metric basis, using
 an archive policy.
