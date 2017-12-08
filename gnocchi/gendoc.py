@@ -44,7 +44,7 @@ def _extract_body(req_or_resp):
     if not req_or_resp.body:
         return ""
 
-    if req_or_resp.content_type == "application/json":
+    if req_or_resp.content_type.startswith("application/json"):
         body = _format_json(req_or_resp.body)
     else:
         body = req_or_resp.body
@@ -200,8 +200,7 @@ def setup(app):
         for entry in scenarios:
             template = jinja2.Template(entry['request'])
             fake_file = six.moves.cStringIO()
-            fake_file.write(template.render(
-                scenarios=scenarios).encode('utf-8'))
+            fake_file.write(template.render(scenarios=scenarios))
             fake_file.seek(0)
             request = webapp.RequestClass.from_file(fake_file)
 
@@ -225,7 +224,35 @@ def setup(app):
         test.tearDown()
         test.tearDownClass()
     with open("doc/source/rest.j2", "r") as f:
-        template = jinja2.Template(f.read().decode('utf-8'))
+        template = jinja2.Template(f.read())
     with open("doc/source/rest.rst", "w") as f:
-        f.write(template.render(scenarios=scenarios).encode('utf-8'))
+        f.write(template.render(scenarios=scenarios))
+
+    # Generate API spec
+    from collections import OrderedDict
+    from apispec.core import Path
+    from apispec.lazy_dict import LazyDict
+
+    from gnocchi.rest import metric
+
+    def represent_dict(dumper, instance):
+        return dumper.represent_mapping('tag:yaml.org,2002:map',
+                                        instance.items())
+
+    if six.PY2:
+        def unicode_representer(dumper, uni):
+            return yaml.ScalarNode(tag=u'tag:yaml.org,2002:str', value=uni)
+
+        yaml.add_representer(unicode, unicode_representer)
+
+    # TODO(jd) Move that into a non-system wide hack in apispec itself
+    # https://github.com/marshmallow-code/apispec/issues/161
+    yaml.add_representer(OrderedDict, represent_dict)
+    yaml.add_representer(LazyDict, represent_dict)
+    yaml.add_representer(Path, represent_dict)
+    yaml.add_representer(Path, represent_dict)
+
+    with open("doc/source/openapi.yml", "w") as f:
+        f.write(yaml.dump(metric.spec.to_dict()))
+
     _RUN = True
