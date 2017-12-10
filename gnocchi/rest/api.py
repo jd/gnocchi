@@ -636,15 +636,12 @@ class MetricsController(rest.RestController):
         "user_id": six.text_type,
         "project_id": six.text_type,
         "creator": six.text_type,
-        "limit": six.text_type,
         "name": six.text_type,
         "id": six.text_type,
         "unit": six.text_type,
         "archive_policy_name": six.text_type,
         "status": voluptuous.Any("active", "delete"),
-        "sort": voluptuous.Any([six.text_type], six.text_type),
-        "marker": six.text_type,
-    })
+    }, extra=voluptuous.ALLOW_EXTRA)
 
     @classmethod
     @pecan.expose('json')
