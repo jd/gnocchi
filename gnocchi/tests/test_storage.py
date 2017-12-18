@@ -271,7 +271,6 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
         self.assertEqual([
-            (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2015, 1, 1), numpy.timedelta64(1, 'D'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(1, 'h'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(5, 'm'), 69),
@@ -912,9 +911,21 @@ class TestStorageDriver(tests_base.TestCase):
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=2)])
         m = self.index.list_metrics(attribute_filter={"=": {"id": m.id}})[0]
+        # Old data is still there, no new points added
         self.assertEqual([
+            (datetime64(2014, 1, 1, 12, 0, 0), numpy.timedelta64(5, 's'), 1),
+            (datetime64(2014, 1, 1, 12, 0, 5), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),
+        ], self.storage.get_measures(m))
+        self.incoming.add_measures(m.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 21), 1),
+        ])
+        self.trigger_processing([str(m.id)])
+        # New policy in place
+        self.assertEqual([
+            (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),
+            (datetime64(2014, 1, 1, 12, 0, 20), numpy.timedelta64(5, 's'), 1),
         ], self.storage.get_measures(m))
 
     def test_resample_no_metric(self):
