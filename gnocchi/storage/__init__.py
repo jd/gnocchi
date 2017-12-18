@@ -232,10 +232,8 @@ class StorageDriver(object):
                                 aggregation, granularity,
                                 from_timestamp=None, to_timestamp=None):
 
-        # Find the number of point
         for d in metric.archive_policy.definition:
             if d.granularity == granularity:
-                points = d.points
                 break
         else:
             raise AggregationDoesNotExist(metric, aggregation, granularity)
@@ -246,8 +244,7 @@ class StorageDriver(object):
         except MetricDoesNotExist:
             return carbonara.AggregatedTimeSerie(
                 sampling=granularity,
-                aggregation_method=aggregation,
-                max_size=points)
+                aggregation_method=aggregation)
 
         if from_timestamp:
             from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
@@ -270,11 +267,11 @@ class StorageDriver(object):
         return carbonara.AggregatedTimeSerie.from_timeseries(
             sampling=granularity,
             aggregation_method=aggregation,
-            timeseries=timeseries,
-            max_size=points)
+            timeseries=timeseries)
 
     def _store_timeserie_split(self, metric, key, split,
-                               aggregation, oldest_mutable_timestamp):
+                               aggregation, oldest_mutable_timestamp,
+                               oldest_point_to_keep):
         # NOTE(jd) We write the full split only if the driver works that way
         # (self.WRITE_FULL) or if the oldest_mutable_timestamp is out of range.
         write_full = self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
@@ -304,6 +301,9 @@ class StorageDriver(object):
                         aggregation, key)
             return
 
+        if oldest_point_to_keep is not None:
+            split.truncate(oldest_point_to_keep)
+
         offset, data = split.serialize(key, compressed=write_full)
 
         return self._store_metric_measures(metric, key, aggregation,
@@ -322,7 +322,7 @@ class StorageDriver(object):
 
         ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
             grouped_serie, archive_policy_def.granularity,
-            aggregation_to_compute, max_size=archive_policy_def.points)
+            aggregation_to_compute)
 
         # Don't do anything if the timeserie is empty
         if not ts:
@@ -352,6 +352,7 @@ class StorageDriver(object):
                     self._delete_metric_measures(metric, key, aggregation)
                     existing_keys.remove(key)
         else:
+            oldest_point_to_keep = None
             oldest_key_to_keep = None
 
         # Rewrite all read-only splits just for fun (and compression). This
@@ -373,7 +374,8 @@ class StorageDriver(object):
                         # compression). For that, we just pass None as split.
                         self._store_timeserie_split(
                             metric, key,
-                            None, aggregation, oldest_mutable_timestamp)
+                            None, aggregation, oldest_mutable_timestamp,
+                            oldest_point_to_keep)
 
         for key, split in ts.split():
             if oldest_key_to_keep is None or key >= oldest_key_to_keep:
@@ -381,7 +383,8 @@ class StorageDriver(object):
                     "Storing split %s (%s) for metric %s",
                     key, aggregation, metric)
                 self._store_timeserie_split(
-                    metric, key, split, aggregation, oldest_mutable_timestamp)
+                    metric, key, split, aggregation, oldest_mutable_timestamp,
+                    oldest_point_to_keep)
 
     @staticmethod
     def _delete_metric(metric):
