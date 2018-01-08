@@ -119,13 +119,13 @@ class StopWatchTest(tests_base.TestCase):
 
 class ParallelMap(tests_base.TestCase):
     def test_parallel_map_one(self):
-        utils.parallel_map.NUM_WORKERS = 1
+        utils.parallel_map.MAX_WORKERS = 1
         self.assertEqual([1, 2, 3],
                          utils.parallel_map(lambda x: x,
                                             [[1], [2], [3]]))
 
     def test_parallel_map_four(self):
-        utils.parallel_map.NUM_WORKERS = 4
+        utils.parallel_map.MAX_WORKERS = 4
         self.assertEqual([1, 2, 3],
                          utils.parallel_map(lambda x: x,
                                             [[1], [2], [3]]))
