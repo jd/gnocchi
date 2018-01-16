@@ -94,7 +94,7 @@ class RedisStorage(storage.StorageDriver):
 
     def _get_measures(self, metric, keys, aggregation, version=3):
         if not keys:
-            return []
+            return {}
         redis_key = self._metric_key(metric)
         fields = [
             self._aggregated_field_for_split(aggregation, key, version)
