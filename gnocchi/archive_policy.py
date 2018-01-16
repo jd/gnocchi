@@ -94,6 +94,17 @@ class ArchivePolicy(object):
                 return aggregation.Aggregation(
                     method, d.granularity, d.timespan)
 
+    def get_aggregations_for_method(self, method):
+        """Return a list of aggregation for a method.
+
+        List is sorted by granularity, desc.
+
+        :param method: Aggregation method.
+        """
+        return [aggregation.Aggregation(method, d.granularity, d.timespan)
+                for d in sorted(self.definition,
+                                key=lambda d: d.granularity, reverse=True)]
+
     @property
     def aggregations(self):
         return [aggregation.Aggregation(method, d.granularity, d.timespan)
