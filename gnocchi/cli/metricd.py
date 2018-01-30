@@ -85,6 +85,8 @@ class MetricProcessBase(cotyledon.Service):
                     LOG.error("Unexpected error during %s job",
                               self.name,
                               exc_info=True)
+            if self.worker_id == 0:
+                self.store.expunge_metrics(self.incoming, self.index)
             self._wake_up.wait(max(0, self.interval_delay - timer.elapsed()))
             self._wake_up.clear()
         self._shutdown_done.set()
@@ -148,6 +150,8 @@ class MetricProcessor(MetricProcessBase):
         self._get_sacks_to_process = cachetools.func.ttl_cache(
             ttl=conf.metricd.metric_processing_delay
         )(self._get_sacks_to_process)
+        if worker_id == 0:
+            self.name = "processing+janitor"
 
     @tenacity.retry(
         wait=utils.wait_exponential,
@@ -258,18 +262,6 @@ class MetricProcessor(MetricProcessBase):
         self.coord.stop()
 
 
-class MetricJanitor(MetricProcessBase):
-    name = "janitor"
-
-    def __init__(self,  worker_id, conf):
-        super(MetricJanitor, self).__init__(
-            worker_id, conf, conf.metricd.metric_cleanup_delay)
-
-    def _run_job(self):
-        self.store.expunge_metrics(self.incoming, self.index)
-        LOG.debug("Metrics marked for deletion removed from backend")
-
-
 class MetricdServiceManager(cotyledon.ServiceManager):
     def __init__(self, conf):
         super(MetricdServiceManager, self).__init__()
@@ -281,7 +273,6 @@ class MetricdServiceManager(cotyledon.ServiceManager):
             workers=conf.metricd.workers)
         if self.conf.metricd.metric_reporting_delay >= 0:
             self.add(MetricReporting, args=(self.conf,))
-        self.add(MetricJanitor, args=(self.conf,))
 
         self.register_hooks(on_reload=self.on_reload)
 
