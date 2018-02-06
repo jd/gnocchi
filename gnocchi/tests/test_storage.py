@@ -45,7 +45,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.metric, __ = self._create_metric()
 
     def test_driver_str(self):
-        driver = storage.get_driver(self.conf, None)
+        driver = storage.get_driver(self.conf)
 
         if isinstance(driver, file.FileStorage):
             s = driver.basepath
@@ -62,7 +62,7 @@ class TestStorageDriver(tests_base.TestCase):
                          driver.__class__.__name__, s))
 
     def test_get_driver(self):
-        driver = storage.get_driver(self.conf, None)
+        driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, storage.StorageDriver)
 
     def test_corrupted_data(self):
@@ -160,7 +160,8 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
         __, __, details = self.incoming._build_report(True)
         self.assertIn(str(self.metric.id), details)
-        self.storage.expunge_metrics(self.incoming, self.index, sync=True)
+        self.storage.expunge_metrics(self.coord,
+                                     self.incoming, self.index, sync=True)
         __, __, details = self.incoming._build_report(True)
         self.assertNotIn(str(self.metric.id), details)
 
@@ -170,7 +171,8 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
         self.index.delete_metric(self.metric.id)
-        self.storage.expunge_metrics(self.incoming, self.index, sync=True)
+        self.storage.expunge_metrics(self.coord,
+                                     self.incoming, self.index, sync=True)
         self.assertRaises(indexer.NoSuchMetric, self.index.delete_metric,
                           self.metric.id)
 

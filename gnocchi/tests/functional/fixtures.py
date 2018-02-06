@@ -146,7 +146,7 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.coord = metricd.get_coordinator_and_start(str(uuid.uuid4()),
                                                        conf.coordination_url)
-        s = storage.get_driver(conf, self.coord)
+        s = storage.get_driver(conf)
         s.upgrade()
         i = incoming.get_driver(conf)
         i.upgrade(128)
@@ -221,7 +221,8 @@ class MetricdThread(threading.Thread):
             metrics = self.index.list_metrics(
                 attribute_filter={"in": {"id": metrics}})
             for metric in metrics:
-                self.storage.refresh_metric(self.index,
+                self.storage.refresh_metric(self.coord,
+                                            self.index,
                                             self.incoming,
                                             metric,
                                             timeout=None)
