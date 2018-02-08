@@ -104,9 +104,6 @@ class S3Storage(storage.StorageDriver):
     def _prefix(metric):
         return str(metric.id) + '/'
 
-    def _create_metric(self, metric):
-        pass
-
     def _put_object_safe(self, Bucket, Key, Body):
         put = self.s3.put_object(Bucket=Bucket, Key=Key, Body=Body)
 
@@ -216,16 +213,20 @@ class S3Storage(storage.StorageDriver):
         return S3Storage._prefix(metric) + 'none' + ("_v%s" % version
                                                      if version else "")
 
-    def _get_unaggregated_timeserie(self, metric, version=3):
-        try:
-            response = self.s3.get_object(
-                Bucket=self._bucket_name,
-                Key=self._build_unaggregated_timeserie_path(metric, version))
-        except botocore.exceptions.ClientError as e:
-            if e.response['Error'].get('Code') == "NoSuchKey":
-                raise storage.MetricDoesNotExist(metric)
-            raise
-        return response['Body'].read()
+    def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        ts = {}
+        for metric in metrics:
+            key = self._build_unaggregated_timeserie_path(metric, version)
+            try:
+                response = self.s3.get_object(
+                    Bucket=self._bucket_name, Key=key)
+            except botocore.exceptions.ClientError as e:
+                if e.response['Error'].get('Code') != "NoSuchKey":
+                    raise
+                ts[metric] = None
+            else:
+                ts[metric] = response['Body'].read()
+        return ts
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
         self._put_object_safe(
