@@ -183,12 +183,16 @@ class CephStorage(storage.StorageDriver):
         return (('gnocchi_%s_none' % metric.id)
                 + ("_v%s" % version if version else ""))
 
-    def _get_unaggregated_timeserie(self, metric, version=3):
-        try:
-            return self._get_object_content(
-                self._build_unaggregated_timeserie_path(metric, version))
-        except rados.ObjectNotFound:
-            raise storage.MetricDoesNotExist(metric)
+    def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        ts = {}
+        for metric in metrics:
+            try:
+                ts[metric] = self._get_object_content(
+                    self._build_unaggregated_timeserie_path(metric, version))
+            except rados.ObjectNotFound:
+                self._create_metric(metric)
+                ts[metric] = None
+        return ts
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
         self.ioctx.write_full(

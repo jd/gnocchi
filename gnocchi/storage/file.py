@@ -31,6 +31,12 @@ OPTS = [
                help='Path used to store gnocchi data files.'),
 ]
 
+# Python 2 compatibility
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = None
+
 
 class FileStorage(storage.StorageDriver):
     WRITE_FULL = True
@@ -95,15 +101,28 @@ class FileStorage(storage.StorageDriver):
         with open(dest, "wb") as f:
             f.write(data)
 
-    def _get_unaggregated_timeserie(self, metric, version=3):
-        path = self._build_unaggregated_timeserie_path(metric, version)
-        try:
-            with open(path, 'rb') as f:
-                return f.read()
-        except IOError as e:
-            if e.errno == errno.ENOENT:
-                raise storage.MetricDoesNotExist(metric)
-            raise
+    def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        ts = {}
+        for metric in metrics:
+            path = self._build_unaggregated_timeserie_path(metric, version)
+            try:
+                with open(path, 'rb') as f:
+                    ts[metric] = f.read()
+            except FileNotFoundError:
+                try:
+                    self._create_metric(metric)
+                except storage.MetricAlreadyExists:
+                    pass
+                ts[metric] = None
+            except IOError as e:
+                if e.errno == errno.ENOENT:
+                    try:
+                        self._create_metric(metric)
+                    except storage.MetricAlreadyExists:
+                        pass
+                    ts[metric] = None
+                raise
+        return ts
 
     def _list_split_keys(self, metric, aggregation, granularity, version=3):
         try:

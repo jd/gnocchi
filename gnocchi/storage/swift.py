@@ -186,16 +186,24 @@ class SwiftStorage(storage.StorageDriver):
     def _build_unaggregated_timeserie_path(version):
         return 'none' + ("_v%s" % version if version else "")
 
-    def _get_unaggregated_timeserie(self, metric, version=3):
-        try:
-            headers, contents = self.swift.get_object(
-                self._container_name(metric),
-                self._build_unaggregated_timeserie_path(version))
-        except swclient.ClientException as e:
-            if e.http_status == 404:
-                raise storage.MetricDoesNotExist(metric)
-            raise
-        return contents
+    def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        ts = {}
+        for metric in metrics:
+            try:
+                headers, contents = self.swift.get_object(
+                    self._container_name(metric),
+                    self._build_unaggregated_timeserie_path(version))
+            except swclient.ClientException as e:
+                if e.http_status != 404:
+                    raise
+                try:
+                    self._create_metric(metric)
+                except storage.MetricAlreadyExists:
+                    pass
+                ts[metric] = None
+            else:
+                ts[metric] = contents
+        return ts
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
         self.swift.put_object(self._container_name(metric),
