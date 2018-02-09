@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016-2017 Red Hat, Inc.
+# Copyright © 2016-2018 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -232,8 +232,9 @@ class S3Storage(storage.StorageDriver):
                 ts[metric] = response['Body'].read()
         return ts
 
-    def _store_unaggregated_timeserie(self, metric, data, version=3):
-        self._put_object_safe(
-            Bucket=self._bucket_name,
-            Key=self._build_unaggregated_timeserie_path(metric, version),
-            Body=data)
+    def _store_unaggregated_timeseries(self, metrics_and_data, version=3):
+        for metric, data in metrics_and_data:
+            self._put_object_safe(
+                Bucket=self._bucket_name,
+                Key=self._build_unaggregated_timeserie_path(metric, version),
+                Body=data)

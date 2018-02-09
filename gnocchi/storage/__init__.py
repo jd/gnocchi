@@ -129,7 +129,12 @@ class StorageDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def _store_unaggregated_timeserie(metric, data, version=3):
+    def _store_unaggregated_timeseries(metrics_and_data, version=3):
+        """Store unaggregated timeseries.
+
+        :param metrics_and_data: A list of (metric, serialized_data) tuples
+        :param version: Storage engine data format version
+        """
         raise NotImplementedError
 
     @staticmethod
@@ -465,7 +470,7 @@ class StorageDriver(object):
                   "in %.2f seconds%s",
                   metric.id, len(measures), elapsed, perf)
 
-        self._store_unaggregated_timeserie(metric, ts.serialize())
+        self._store_unaggregated_timeseries([(metric, ts.serialize())])
 
     def find_measure(self, metric, predicate, granularity, aggregation="mean",
                      from_timestamp=None, to_timestamp=None):

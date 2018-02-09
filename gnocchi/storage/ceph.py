@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2018 Red Hat
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -194,9 +195,10 @@ class CephStorage(storage.StorageDriver):
                 ts[metric] = None
         return ts
 
-    def _store_unaggregated_timeserie(self, metric, data, version=3):
-        self.ioctx.write_full(
-            self._build_unaggregated_timeserie_path(metric, version), data)
+    def _store_unaggregated_timeseries(self, metrics_and_data, version=3):
+        for metric, data in metrics_and_data:
+            self.ioctx.write_full(
+                self._build_unaggregated_timeserie_path(metric, version), data)
 
     def _get_object_content(self, name):
         offset = 0
