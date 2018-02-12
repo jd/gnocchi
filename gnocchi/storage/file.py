@@ -140,9 +140,10 @@ class FileStorage(storage.StorageDriver):
                 keys.add(meta[0])
         return keys
 
-    def _delete_metric_measures(self, metric, key, aggregation, version=3):
-        os.unlink(self._build_metric_path_for_split(
-            metric, aggregation, key, version))
+    def _delete_metric_splits(self, metric, keys, aggregation, version=3):
+        for key in keys:
+            os.unlink(self._build_metric_path_for_split(
+                metric, aggregation, key, version))
 
     def _store_metric_splits(self, metric, keys_and_data_and_offset,
                              aggregation, version=3):

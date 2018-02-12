@@ -363,6 +363,7 @@ class StorageDriver(object):
 
                 # First, check for old splits to delete
                 if ap_def.timespan:
+                    deleted_keys = set()
                     for key in list(existing_keys):
                         # NOTE(jd) Only delete if the key is strictly inferior
                         # the timestamp; we don't delete any timeserie split
@@ -370,8 +371,10 @@ class StorageDriver(object):
                         # bit more than deleting too much
                         if key >= oldest_key_to_keep:
                             break
-                        self._delete_metric_measures(metric, key, aggregation)
+                        deleted_keys.add(key)
                         existing_keys.remove(key)
+                    self._delete_metric_splits(
+                        metric, deleted_keys, aggregation)
 
                 # Rewrite all read-only splits just for fun (and compression).
                 # This only happens if `previous_oldest_mutable_timestamp'
@@ -406,8 +409,7 @@ class StorageDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def _delete_metric_measures(metric, timestamp_key,
-                                aggregation, granularity, version=3):
+    def _delete_metric_splits(metric, keys, aggregation, version=3):
         raise NotImplementedError
 
     def compute_and_store_timeseries(self, metric, measures):
