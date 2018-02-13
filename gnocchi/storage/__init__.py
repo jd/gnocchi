@@ -386,8 +386,7 @@ class StorageDriver(object):
                             break
                         deleted_keys.add(key)
                         existing_keys.remove(key)
-                    self._delete_metric_splits(
-                        metric, deleted_keys, aggregation.method)
+                    self._delete_metric_splits(metric, deleted_keys)
 
                 # Rewrite all read-only splits just for fun (and compression).
                 # This only happens if `previous_oldest_mutable_timestamp'
@@ -423,7 +422,7 @@ class StorageDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def _delete_metric_splits_unbatched(metric, keys, aggregation, version=3):
+    def _delete_metric_splits_unbatched(metric, keys, version=3):
         raise NotImplementedError
 
     def _delete_metric_splits(self, metric, keys, aggregation, version=3):
