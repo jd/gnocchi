@@ -124,11 +124,11 @@ class SwiftStorage(storage.StorageDriver):
                 self._object_name(key, key.aggregation_method, version),
                 data)
 
-    def _delete_metric_splits(self, metric, keys, aggregation, version=3):
+    def _delete_metric_splits(self, metric, keys, version=3):
         for key in keys:
             self.swift.delete_object(
                 self._container_name(metric),
-                self._object_name(key, aggregation, version))
+                self._object_name(key, key.aggregation_method, version))
 
     def _delete_metric(self, metric):
         container = self._container_name(metric)

@@ -132,13 +132,12 @@ class S3Storage(storage.StorageDriver):
                     key, key.aggregation_method, version),
                 Body=data)
 
-    def _delete_metric_splits(self, metric, keys, aggregation,
-                              version=3):
+    def _delete_metric_splits(self, metric, keys, version=3):
         for key in keys:
             self.s3.delete_object(
                 Bucket=self._bucket_name,
                 Key=self._prefix(metric) + self._object_name(
-                    key, aggregation, version))
+                    key, key.aggregation_method, version))
 
     def _delete_metric(self, metric):
         bucket = self._bucket_name
