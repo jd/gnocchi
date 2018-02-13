@@ -218,13 +218,7 @@ class StorageDriver(object):
 
     def _get_measures_timeserie(self, metric, aggregation,
                                 from_timestamp=None, to_timestamp=None):
-        try:
-            all_keys = self._list_split_keys(
-                metric, [aggregation])[aggregation]
-        except MetricDoesNotExist:
-            return carbonara.AggregatedTimeSerie(
-                sampling=aggregation.granularity,
-                aggregation_method=aggregation.method)
+        all_keys = self._list_split_keys(metric, [aggregation])[aggregation]
 
         if from_timestamp:
             from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
