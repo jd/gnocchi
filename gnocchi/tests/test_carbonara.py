@@ -258,7 +258,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         key = ts.get_split_key()
         o, s = ts.serialize(key)
         saved_ts = carbonara.AggregatedTimeSerie.unserialize(
-            s, key, '74pct')
+            s, key)
 
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0),
@@ -687,7 +687,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         o, s = ts['return'].serialize(key)
         self.assertEqual(ts['return'],
                          carbonara.AggregatedTimeSerie.unserialize(
-                             s, key, 'mean'))
+                             s, key))
 
     def test_no_truncation(self):
         ts = {'sampling': numpy.timedelta64(60, 's'), 'agg': 'mean'}
