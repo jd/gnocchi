@@ -657,12 +657,11 @@ class AggregatedTimeSerie(TimeSerie):
         return six.indexbytes(serialized_data, 0) == ord("c")
 
     @classmethod
-    def unserialize(cls, data, key, agg_method):
+    def unserialize(cls, data, key):
         """Unserialize an aggregated timeserie.
 
         :param data: Raw data buffer.
         :param key: A :class:`SplitKey` key.
-        :param agg_method: The aggregation method of this timeseries.
         """
         x, y = [], []
 
@@ -693,7 +692,7 @@ class AggregatedTimeSerie(TimeSerie):
                 y = index * key.sampling + key.key
                 x = everything['v'][index]
 
-        return cls.from_data(key.sampling, agg_method, y, x)
+        return cls.from_data(key.sampling, key.aggregation_method, y, x)
 
     def get_split_key(self, timestamp=None):
         """Return the split key for a particular timestamp.
@@ -826,7 +825,7 @@ class AggregatedTimeSerie(TimeSerie):
 
             t0 = time.time()
             for i in six.moves.range(serialize_times):
-                cls.unserialize(s, key, 'mean')
+                cls.unserialize(s, key)
             t1 = time.time()
             print("  Unserialization speed: %.2f MB/s"
                   % (((points * 2 * 8)
@@ -843,7 +842,7 @@ class AggregatedTimeSerie(TimeSerie):
 
             t0 = time.time()
             for i in six.moves.range(serialize_times):
-                cls.unserialize(s, key, 'mean')
+                cls.unserialize(s, key)
             t1 = time.time()
             print("  Uncompression speed: %.2f MB/s"
                   % (((points * 2 * 8)
