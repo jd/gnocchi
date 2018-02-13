@@ -114,11 +114,11 @@ class SwiftStorage(storage.StorageDriver):
             raise storage.MetricAlreadyExists(metric)
 
     def _store_metric_splits(self, metric, keys_and_data_and_offset,
-                             aggregation, version=3):
+                             version=3):
         for key, data, offset in keys_and_data_and_offset:
             self.swift.put_object(
                 self._container_name(metric),
-                self._object_name(key, aggregation, version),
+                self._object_name(key, key.aggregation_method, version),
                 data)
 
     def _delete_metric_splits_unbatched(

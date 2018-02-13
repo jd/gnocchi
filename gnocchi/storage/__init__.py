@@ -167,15 +167,13 @@ class StorageDriver(object):
             ((metric, data, version) for metric, data in metrics_and_data))
 
     @staticmethod
-    def _store_metric_splits(metric, keys_and_data_and_offset, aggregation,
-                             version=3):
+    def _store_metric_splits(metric, keys_and_data_and_offset, version=3):
         """Store metric split.
 
         Store a bunch of splits for a metric.
 
         :param metric: The metric to store for
         :param keys_and_data_and_offset: A list of (key, data, offset) tuples
-        :param aggregation: The aggregation method concerned
         :param version: Storage engine format version.
         """
         raise NotImplementedError
@@ -345,7 +343,7 @@ class StorageDriver(object):
                 key, compressed=key in keys_to_rewrite)
             key_data_offset.append((key, data, offset))
 
-        return self._store_metric_splits(metric, key_data_offset, aggregation)
+        return self._store_metric_splits(metric, key_data_offset)
 
     def _add_measures(self, metric, aggregation, grouped_serie,
                       previous_oldest_mutable_timestamp,
