@@ -120,12 +120,12 @@ class S3Storage(storage.StorageDriver):
                 stop=self._consistency_stop)(_head)
 
     def _store_metric_splits(self, metric, keys_and_data_and_offset,
-                             aggregation, version=3):
+                             version=3):
         for key, data, offset in keys_and_data_and_offset:
             self._put_object_safe(
                 Bucket=self._bucket_name,
                 Key=self._prefix(metric) + self._object_name(
-                    key, aggregation, version),
+                    key, key.aggregation_method, version),
                 Body=data)
 
     def _delete_metric_splits_unbatched(self, metric, key, aggregation,
