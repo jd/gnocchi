@@ -95,9 +95,9 @@ class CephStorage(storage.StorageDriver):
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
 
-    def _delete_metric_splits(self, metric, keys, aggregation, version=3):
+    def _delete_metric_splits(self, metric, keys, version=3):
         names = tuple(
-            self._get_object_name(metric, key, aggregation, version)
+            self._get_object_name(metric, key, key.aggregation_method, version)
             for key in keys
         )
         with rados.WriteOpCtx() as op:
