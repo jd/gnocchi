@@ -128,11 +128,12 @@ return {0, final}
         pipe.execute()
 
     def _store_metric_splits(self, metric, keys_and_data_and_offset,
-                             aggregation, version=3):
+                             version=3):
         pipe = self._client.pipeline(transaction=False)
         metric_key = self._metric_key(metric)
         for key, data, offset in keys_and_data_and_offset:
-            key = self._aggregated_field_for_split(aggregation, key, version)
+            key = self._aggregated_field_for_split(
+                key.aggregation_method, key, version)
             pipe.hset(metric_key, key, data)
         pipe.execute()
 

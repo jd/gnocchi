@@ -146,11 +146,11 @@ class FileStorage(storage.StorageDriver):
                 metric, aggregation, key, version))
 
     def _store_metric_splits(self, metric, keys_and_data_and_offset,
-                             aggregation, version=3):
+                             version=3):
         for key, data, offset in keys_and_data_and_offset:
             self._atomic_file_store(
                 self._build_metric_path_for_split(
-                    metric, aggregation, key, version),
+                    metric, key.aggregation_method, key, version),
                 data)
 
     def _delete_metric(self, metric):

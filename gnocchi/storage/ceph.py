@@ -79,10 +79,11 @@ class CephStorage(storage.StorageDriver):
             self.ioctx.write_full(name, b"")
 
     def _store_metric_splits(self, metric, keys_and_data_and_offset,
-                             aggregation, version=3):
+                             version=3):
         with rados.WriteOpCtx() as op:
             for key, data, offset in keys_and_data_and_offset:
-                name = self._get_object_name(metric, key, aggregation, version)
+                name = self._get_object_name(
+                    metric, key, key.aggregation_method, version)
                 if offset is None:
                     self.ioctx.write_full(name, data)
                 else:
