@@ -239,7 +239,7 @@ class StorageDriver(object):
         for key, raw in six.moves.zip(keys, raw_measures):
             try:
                 ts = carbonara.AggregatedTimeSerie.unserialize(
-                    raw, key, aggregation)
+                    raw, key)
             except carbonara.InvalidData:
                 LOG.error("Data corruption detected for %s "
                           "aggregated `%s' timeserie, granularity `%s' "
