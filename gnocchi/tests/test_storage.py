@@ -676,7 +676,7 @@ class TestStorageDriver(tests_base.TestCase):
                 numpy.datetime64(1451952000, 's'),
                 numpy.timedelta64(1, 'm'),
                 "mean",
-            )], 'mean')
+            )])
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
