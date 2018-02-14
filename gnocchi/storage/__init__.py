@@ -519,11 +519,10 @@ class StorageDriver(object):
         if agg is None:
             raise AggregationDoesNotExist(metric, aggregation, granularity)
 
-        timeserie = self._get_measures_timeserie(
-            metric, agg, from_timestamp, to_timestamp)
-        values = timeserie.fetch(from_timestamp, to_timestamp)
-        return [(timestamp, g, value)
-                for timestamp, g, value in values
+        ts = self.get_aggregated_measures(
+            metric, [agg], from_timestamp, to_timestamp)[agg]
+        return [(timestamp, ts.sampling, value)
+                for timestamp, value in ts
                 if predicate(value)]
 
 
