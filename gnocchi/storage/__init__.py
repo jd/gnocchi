@@ -270,7 +270,7 @@ class StorageDriver(object):
         return ts
 
     def _store_timeserie_splits(self, metric, keys_and_splits,
-                                aggregation, oldest_mutable_timestamp,
+                                oldest_mutable_timestamp,
                                 oldest_point_to_keep):
         keys_to_rewrite = []
         splits_to_rewrite = []
@@ -310,11 +310,9 @@ class StorageDriver(object):
                 # aggregation method or granularity is missing. That means data
                 # is corrupted, but it does not mean we have to fail, we can
                 # just do nothing and log a warning.
-                LOG.warning("No data found for metric %s, granularity %f "
-                            "and aggregation method %s (split key %s): "
+                LOG.warning("No data found for metric %s (split key %s): "
                             "possible data corruption",
-                            metric, key.sampling,
-                            aggregation, key)
+                            metric, key)
                 continue
 
             if oldest_point_to_keep is not None:
@@ -404,7 +402,7 @@ class StorageDriver(object):
                 keys_and_split_to_store[key] = split
 
         self._store_timeserie_splits(
-            metric, keys_and_split_to_store, aggregation.method,
+            metric, keys_and_split_to_store,
             oldest_mutable_timestamp, oldest_point_to_keep)
 
     @staticmethod
