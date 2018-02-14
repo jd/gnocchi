@@ -222,7 +222,9 @@ class StorageDriver(object):
 
         return {
             aggmethod: list(itertools.chain(
-                *[ts.fetch(from_timestamp, to_timestamp)
+                *[[(timestamp, ts.sampling, value)
+                   for timestamp, value
+                   in ts.fetch(from_timestamp, to_timestamp)]
                   for ts in aggts]))
             for aggmethod, aggts in itertools.groupby(agg_timeseries,
                                                       ATTRGETTER_AGG_METHOD)
