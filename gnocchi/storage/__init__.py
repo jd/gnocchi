@@ -107,14 +107,13 @@ class StorageDriver(object):
     def upgrade():
         pass
 
-    def _get_measures(self, metric, keys, aggregation, version=3):
+    def _get_measures(self, metric, keys, version=3):
         return utils.parallel_map(
             self._get_measures_unbatched,
-            ((metric, key, aggregation, version)
-             for key in keys))
+            ((metric, key, version) for key in keys))
 
     @staticmethod
-    def _get_measures_unbatched(metric, timestamp_key, aggregation, version=3):
+    def _get_measures_unbatched(metric, timestamp_key, version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -251,7 +250,7 @@ class StorageDriver(object):
     def _get_measures_and_unserialize(self, metric, keys, aggregation):
         if not keys:
             return []
-        raw_measures = self._get_measures(metric, keys, aggregation)
+        raw_measures = self._get_measures(metric, keys)
         results = []
         for key, raw in six.moves.zip(keys, raw_measures):
             try:

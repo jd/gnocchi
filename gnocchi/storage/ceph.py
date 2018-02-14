@@ -145,15 +145,16 @@ class CephStorage(storage.StorageDriver):
             # It's possible that the object does not exists
             pass
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_measures_unbatched(self, metric, key, version=3):
         try:
-            name = self._get_object_name(metric, key, aggregation, version)
+            name = self._get_object_name(
+                metric, key, key.aggregation_method, version)
             return self._get_object_content(name)
         except rados.ObjectNotFound:
             if self._object_exists(
                     self._build_unaggregated_timeserie_path(metric, 3)):
                 raise storage.AggregationDoesNotExist(
-                    metric, aggregation, key.sampling)
+                    metric, key.aggregation_method, key.sampling)
             else:
                 raise storage.MetricDoesNotExist(metric)
 
