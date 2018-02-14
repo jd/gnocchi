@@ -247,7 +247,7 @@ class StorageDriver(object):
                                                      ATTRGETTER_METHOD)
         }
 
-    def _get_measures_and_unserialize(self, metric, keys, aggregation):
+    def _get_measures_and_unserialize(self, metric, keys):
         if not keys:
             return []
         raw_measures = self._get_measures(metric, keys)
@@ -260,7 +260,7 @@ class StorageDriver(object):
                 LOG.error("Data corruption detected for %s "
                           "aggregated `%s' timeserie, granularity `%s' "
                           "around time `%s', ignoring.",
-                          metric.id, aggregation, key.sampling, key)
+                          metric.id, key.aggregation_method, key.sampling, key)
             else:
                 results.append(ts)
         return results
@@ -279,8 +279,7 @@ class StorageDriver(object):
                 if ((not from_timestamp or key >= from_timestamp)
                     and (not to_timestamp or key <= to_timestamp))]
 
-        timeseries = self._get_measures_and_unserialize(
-            metric, keys, aggregation.method)
+        timeseries = self._get_measures_and_unserialize(metric, keys)
 
         ts = carbonara.AggregatedTimeSerie.from_timeseries(
             sampling=aggregation.granularity,
@@ -319,7 +318,7 @@ class StorageDriver(object):
         # First, fetch all those existing splits.
         try:
             existing_data = self._get_measures_and_unserialize(
-                metric, keys_to_rewrite, aggregation)
+                metric, keys_to_rewrite)
         except AggregationDoesNotExist:
             pass
         else:
