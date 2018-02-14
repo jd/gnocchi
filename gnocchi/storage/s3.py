@@ -156,12 +156,12 @@ class S3Storage(storage.StorageDriver):
             s3.bulk_delete(self.s3, bucket,
                            [c['Key'] for c in response.get('Contents', ())])
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_measures_unbatched(self, metric, key, version=3):
         try:
             response = self.s3.get_object(
                 Bucket=self._bucket_name,
                 Key=self._prefix(metric) + self._object_name(
-                    key, aggregation, version))
+                    key, key.aggregation_method, version))
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') == 'NoSuchKey':
                 try:
@@ -172,7 +172,7 @@ class S3Storage(storage.StorageDriver):
                         raise storage.MetricDoesNotExist(metric)
                     raise
                 raise storage.AggregationDoesNotExist(
-                    metric, aggregation, key.sampling)
+                    metric, key.aggregation_method, key.sampling)
             raise
         return response['Body'].read()
 
