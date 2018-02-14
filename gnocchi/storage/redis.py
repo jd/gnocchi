@@ -162,11 +162,12 @@ return {0, final}
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
 
-    def _get_measures(self, metric, keys, aggregation, version=3):
+    def _get_measures(self, metric, keys, version=3):
         if not keys:
             return []
         fields = [
-            self._aggregated_field_for_split(aggregation, key, version)
+            self._aggregated_field_for_split(
+                key.aggregation_method, key, version)
             for key in keys
         ]
         code, result = self._scripts['get_measures'](
@@ -174,7 +175,9 @@ return {0, final}
             args=fields,
         )
         if code == -1:
-            sampling = utils.to_timespan(result.split(self.FIELD_SEP_B)[2])
+            s = result.split(self.FIELD_SEP_B)
+            aggregation = s[1]
+            sampling = utils.to_timespan(s[2])
             raise storage.AggregationDoesNotExist(
                 metric, aggregation, sampling)
         if code == -2:

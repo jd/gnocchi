@@ -188,9 +188,9 @@ class FileStorage(storage.StorageDriver):
                 # measures)
                 raise
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_measures_unbatched(self, metric, key, version=3):
         path = self._build_metric_path_for_split(
-            metric, aggregation, key, version)
+            metric, key.aggregation_method, key, version)
         try:
             with open(path, 'rb') as aggregation_file:
                 return aggregation_file.read()
@@ -198,6 +198,6 @@ class FileStorage(storage.StorageDriver):
             if e.errno == errno.ENOENT:
                 if os.path.exists(self._build_metric_dir(metric)):
                     raise storage.AggregationDoesNotExist(
-                        metric, aggregation, key.sampling)
+                        metric, key.aggregation_method, key.sampling)
                 raise storage.MetricDoesNotExist(metric)
             raise
