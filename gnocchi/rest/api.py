@@ -335,8 +335,8 @@ class ArchivePoliciesController(rest.RestController):
             ),
             voluptuous.Required(
                 "aggregation_methods",
-                default=set(conf.archive_policy.default_aggregation_methods)):
-            voluptuous.All(list(valid_agg_methods), voluptuous.Coerce(set)),
+                default=conf.archive_policy.default_aggregation_methods):
+            voluptuous.All(list(valid_agg_methods)),
             voluptuous.Required("definition"): ArchivePolicyDefinitionSchema,
         })
 
