@@ -116,19 +116,19 @@ class SwiftStorage(storage.StorageDriver):
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
 
-    def _store_metric_splits(self, metric, keys_and_data_and_offset,
-                             aggregation, version=3):
-        for key, data, offset in keys_and_data_and_offset:
+    def _store_metric_splits(self, metric, keys_aggregations_data_offset,
+                             version=3):
+        for key, aggregation, data, offset in keys_aggregations_data_offset:
             self.swift.put_object(
                 self._container_name(metric),
-                self._object_name(key, aggregation, version),
+                self._object_name(key, aggregation.method, version),
                 data)
 
     def _delete_metric_splits_unbatched(
             self, metric, key, aggregation, version=3):
         self.swift.delete_object(
             self._container_name(metric),
-            self._object_name(key, aggregation, version))
+            self._object_name(key, aggregation.method, version))
 
     def _delete_metric(self, metric):
         container = self._container_name(metric)
