@@ -50,13 +50,14 @@ return ids
         "get_measures": """
 local results = redis.call("HMGET", KEYS[1], unpack(ARGV))
 local final = {}
+local metric_exists = false
 for i, result in ipairs(results) do
     if result == false then
-        local field = ARGV[i]
-        if redis.call("EXISTS", KEYS[1]) == 1 then
-            return {-1, field}
+        if not metric_exists and redis.call("EXISTS", KEYS[1]) == 0 then
+            return {-2, false}
+        else
+            metric_exists = true
         end
-        return {-2, field}
     end
     final[#final + 1] = result
 end
@@ -175,12 +176,6 @@ return {0, final}
             keys=[self._metric_key(metric)],
             args=fields,
         )
-        if code == -1:
-            s = result.split(self.FIELD_SEP_B)
-            aggregation = s[1]
-            sampling = utils.to_timespan(s[2])
-            raise storage.AggregationDoesNotExist(
-                metric, aggregation, sampling)
         if code == -2:
             raise storage.MetricDoesNotExist(metric)
         return result
