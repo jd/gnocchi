@@ -844,7 +844,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"))
         self.assertRaises(
             TypeError,
-            operator.eq,
+            operator.le,
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "max"),
             carbonara.SplitKey.from_timestamp_and_sampling(dt1_1, td, "mean"))
 
