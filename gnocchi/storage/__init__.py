@@ -345,16 +345,9 @@ class StorageDriver(object):
 
         return self._store_metric_splits(metric, key_data_offset)
 
-    def _add_measures(self, metric, aggregation, grouped_serie,
+    def _add_measures(self, metric, aggregations, grouped_serie,
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
-        ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped_serie, aggregation.granularity, aggregation.method)
-
-        # Don't do anything if the timeserie is empty
-        if not ts:
-            return
-
         # We only need to check for rewrite if driver is not in WRITE_FULL mode
         # and if we already stored splits once
         need_rewrite = (
@@ -362,66 +355,76 @@ class StorageDriver(object):
             and previous_oldest_mutable_timestamp is not None
         )
 
-        if aggregation.timespan:
-            oldest_point_to_keep = ts.truncate(aggregation.timespan)
-        else:
-            oldest_point_to_keep = None
-
-        oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
-
         keys_and_split_to_store = {}
+        deleted_keys = set()
 
-        if previous_oldest_mutable_timestamp and (aggregation.timespan or
-                                                  need_rewrite):
-            previous_oldest_mutable_key = ts.get_split_key(
-                previous_oldest_mutable_timestamp)
-            oldest_mutable_key = ts.get_split_key(oldest_mutable_timestamp)
+        for aggregation in aggregations:
+            ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
+                grouped_serie, aggregation.granularity, aggregation.method)
 
-            # only cleanup if there is a new object, as there must be a new
-            # object for an old object to be cleanup
-            if previous_oldest_mutable_key != oldest_mutable_key:
-                existing_keys = sorted(self._list_split_keys(
-                    metric, [aggregation])[aggregation])
+            # Don't do anything if the timeserie is empty
+            if not ts:
+                continue
 
-                # First, check for old splits to delete
-                if aggregation.timespan:
-                    deleted_keys = set()
-                    for key in list(existing_keys):
-                        # NOTE(jd) Only delete if the key is strictly inferior
-                        # the timestamp; we don't delete any timeserie split
-                        # that contains our timestamp, so we prefer to keep a
-                        # bit more than deleting too much
-                        if key >= oldest_key_to_keep:
-                            break
-                        deleted_keys.add(key)
-                        existing_keys.remove(key)
-                    self._delete_metric_splits(metric, deleted_keys)
+            if aggregation.timespan:
+                oldest_point_to_keep = ts.truncate(aggregation.timespan)
+            else:
+                oldest_point_to_keep = None
 
-                # Rewrite all read-only splits just for fun (and compression).
-                # This only happens if `previous_oldest_mutable_timestamp'
-                # exists, which means we already wrote some splits at some
-                # point – so this is not the first time we treat this
-                # timeserie.
-                if need_rewrite:
-                    for key in existing_keys:
-                        if previous_oldest_mutable_key <= key:
-                            if key >= oldest_mutable_key:
+            oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
+
+            if previous_oldest_mutable_timestamp and (aggregation.timespan or
+                                                      need_rewrite):
+                previous_oldest_mutable_key = ts.get_split_key(
+                    previous_oldest_mutable_timestamp)
+                oldest_mutable_key = ts.get_split_key(oldest_mutable_timestamp)
+
+                # only cleanup if there is a new object, as there must be a new
+                # object for an old object to be cleanup
+                if previous_oldest_mutable_key != oldest_mutable_key:
+                    existing_keys = sorted(self._list_split_keys(
+                        metric, [aggregation])[aggregation])
+
+                    # First, check for old splits to delete
+                    if aggregation.timespan:
+                        for key in list(existing_keys):
+                            # NOTE(jd) Only delete if the key is strictly
+                            # inferior the timestamp; we don't delete any
+                            # timeserie split that contains our timestamp, so
+                            # we prefer to keep a bit more than deleting too
+                            # much
+                            if key >= oldest_key_to_keep:
                                 break
-                            LOG.debug("Compressing previous split %s (%s) for "
-                                      "metric %s", key, aggregation.method,
-                                      metric)
-                            # NOTE(jd) Rewrite it entirely for fun (and later
-                            # for compression). For that, we just pass None as
-                            # split.
-                            keys_and_split_to_store[key] = None
+                            deleted_keys.add(key)
+                            existing_keys.remove(key)
 
-        for key, split in ts.split():
-            if key >= oldest_key_to_keep:
-                LOG.debug(
-                    "Storing split %s (%s) for metric %s",
-                    key, aggregation.method, metric)
-                keys_and_split_to_store[key] = split
+                    # Rewrite all read-only splits just for fun (and
+                    # compression). This only happens if
+                    # `previous_oldest_mutable_timestamp' exists, which means
+                    # we already wrote some splits at some point – so this is
+                    # not the first time we treat this timeserie.
+                    if need_rewrite:
+                        for key in existing_keys:
+                            if previous_oldest_mutable_key <= key:
+                                if key >= oldest_mutable_key:
+                                    break
+                                LOG.debug(
+                                    "Compressing previous split %s (%s) for "
+                                    "metric %s", key, aggregation.method,
+                                    metric)
+                                # NOTE(jd) Rewrite it entirely for fun (and
+                                # later for compression). For that, we just
+                                # pass None as split.
+                                keys_and_split_to_store[key] = None
 
+            for key, split in ts.split():
+                if key >= oldest_key_to_keep:
+                    LOG.debug(
+                        "Storing split %s (%s) for metric %s",
+                        key, aggregation.method, metric)
+                    keys_and_split_to_store[key] = split
+
+        self._delete_metric_splits(metric, deleted_keys)
         self._store_timeserie_splits(metric, keys_and_split_to_store,
                                      oldest_mutable_timestamp)
 
@@ -507,12 +510,9 @@ class StorageDriver(object):
                     granularity, carbonara.round_timestamp(
                         tstamp, granularity))
 
-                utils.parallel_map(
-                    self._add_measures,
-                    ((metric, aggregation, ts,
-                        current_first_block_timestamp,
-                        new_first_block_timestamp)
-                        for aggregation in aggregations))
+                self._add_measures(metric, aggregations, ts,
+                                   current_first_block_timestamp,
+                                   new_first_block_timestamp)
 
         with utils.StopWatch() as sw:
             ts.set_values(measures,

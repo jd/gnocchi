@@ -220,10 +220,11 @@ class TestStorageDriver(tests_base.TestCase):
         for call in c.mock_calls:
             # policy is 60 points and split is 48. should only update 2nd half
             args = call[1]
-            if (args[0] == m_sql
-               and args[1][0][0].aggregation_method == 'mean'
-               and args[1][0][0].sampling == numpy.timedelta64(1, 'm')):
-                count += 1
+            if args[0] == m_sql:
+                for splitkey, data, offset in args[1]:
+                    if (splitkey.aggregation_method == 'mean' and
+                       splitkey.sampling == numpy.timedelta64(1, 'm')):
+                        count += 1
         self.assertEqual(1, count)
 
     def test_add_measures_update_subset(self):
