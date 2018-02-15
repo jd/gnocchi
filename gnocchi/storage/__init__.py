@@ -298,8 +298,7 @@ class StorageDriver(object):
         return ts
 
     def _store_timeserie_splits(self, metric, keys_and_splits,
-                                oldest_mutable_timestamp,
-                                oldest_point_to_keep):
+                                oldest_mutable_timestamp):
         keys_to_rewrite = []
         splits_to_rewrite = []
         for key, split in six.iteritems(keys_and_splits):
@@ -343,9 +342,6 @@ class StorageDriver(object):
                             metric, key)
                 continue
 
-            if oldest_point_to_keep is not None:
-                split.truncate(oldest_point_to_keep)
-
             offset, data = split.serialize(
                 key, compressed=key in keys_to_rewrite)
             key_data_offset.append((key, data, offset))
@@ -370,11 +366,11 @@ class StorageDriver(object):
         )
 
         if aggregation.timespan:
-            oldest_point_to_keep = ts.last - aggregation.timespan
-            oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
+            oldest_point_to_keep = ts.truncate(aggregation.timespan)
         else:
             oldest_point_to_keep = None
-            oldest_key_to_keep = None
+
+        oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
 
         keys_and_split_to_store = {}
 
@@ -423,15 +419,14 @@ class StorageDriver(object):
                             keys_and_split_to_store[key] = None
 
         for key, split in ts.split():
-            if oldest_key_to_keep is None or key >= oldest_key_to_keep:
+            if key >= oldest_key_to_keep:
                 LOG.debug(
                     "Storing split %s (%s) for metric %s",
                     key, aggregation.method, metric)
                 keys_and_split_to_store[key] = split
 
-        self._store_timeserie_splits(
-            metric, keys_and_split_to_store,
-            oldest_mutable_timestamp, oldest_point_to_keep)
+        self._store_timeserie_splits(metric, keys_and_split_to_store,
+                                     oldest_mutable_timestamp)
 
     @staticmethod
     def _delete_metric(metric):
