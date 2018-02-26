@@ -348,6 +348,25 @@ class StorageDriver(object):
     def _add_measures(self, metric, aggregations, grouped_serie,
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
+        """Compute changes to a metric and return operations to be done.
+
+        Based on an aggregations list and a grouped timeseries, this computes
+        what needs to be deleted and stored for a metric and returns it.
+
+        :param metric: The metric
+        :param aggregations: The aggregations to compute for
+        :param grouped_serie: A grouped timeseries
+        :param previous_oldest_mutable_timestamp: The previous oldest storable
+                                                  timestamp from the previous
+                                                  backwindow.
+        :param oldest_mutable_timestamp: The current oldest storable timestamp
+                                         from the current backwindow.
+        :return: A tuple (keys_to_delete, keys_to_store) where keys_to_delete
+                 is a set of `carbonara.SplitKey` to delete and where
+                 keys_to_store is a dictionary of the form {key: aggts}
+                 where key is a `carbonara.SplitKey` and aggts a
+                 `carbonara.AggregatedTimeSerie` to be serialized.
+        """
         # We only need to check for rewrite if driver is not in WRITE_FULL mode
         # and if we already stored splits once
         need_rewrite = (
@@ -438,9 +457,7 @@ class StorageDriver(object):
                         key, aggregation.method, metric)
                     keys_and_split_to_store[key] = split
 
-        self._delete_metric_splits(metric, deleted_keys)
-        self._store_timeserie_splits(metric, keys_and_split_to_store,
-                                     oldest_mutable_timestamp)
+        return (deleted_keys, keys_and_split_to_store)
 
     @staticmethod
     def _delete_metric(metric):
@@ -516,6 +533,9 @@ class StorageDriver(object):
             new_first_block_timestamp = bound_timeserie.first_block_timestamp()
             computed_points['number'] = len(bound_timeserie)
 
+            all_deleted_keys = set()
+            all_keys_and_splits_to_store = {}
+
             for granularity, aggregations in itertools.groupby(
                     # No need to sort the aggregation, they are already
                     metric.archive_policy.aggregations,
@@ -523,10 +543,17 @@ class StorageDriver(object):
                 ts = bound_timeserie.group_serie(
                     granularity, carbonara.round_timestamp(
                         tstamp, granularity))
+                deleted_keys, keys_and_splits_to_store = (
+                    self._add_measures(metric, aggregations, ts,
+                                       current_first_block_timestamp,
+                                       new_first_block_timestamp)
+                )
+                all_deleted_keys = all_deleted_keys.union(deleted_keys)
+                all_keys_and_splits_to_store.update(keys_and_splits_to_store)
 
-                self._add_measures(metric, aggregations, ts,
-                                   current_first_block_timestamp,
-                                   new_first_block_timestamp)
+            self._delete_metric_splits(metric, all_deleted_keys)
+            self._store_timeserie_splits(metric, all_keys_and_splits_to_store,
+                                         new_first_block_timestamp)
 
         with utils.StopWatch() as sw:
             ts.set_values(measures,
