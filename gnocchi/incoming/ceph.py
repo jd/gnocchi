@@ -13,6 +13,7 @@
 # under the License.
 from collections import defaultdict
 import contextlib
+import daiquiri
 import datetime
 import json
 import uuid
@@ -24,6 +25,8 @@ from gnocchi.common import ceph
 from gnocchi import incoming
 
 rados = ceph.rados
+
+LOG = daiquiri.getLogger(__name__)
 
 
 class CephStorage(incoming.IncomingDriver):
@@ -189,44 +192,43 @@ class CephStorage(incoming.IncomingDriver):
         return bool(self._list_keys_to_process(sack, object_prefix))
 
     @contextlib.contextmanager
-    def process_measure_for_metrics(self, metric_ids):
-        measures = {}
-        processed_keys = defaultdict(list)
+    def process_measure_for_sack(self, sack):
+        measures = defaultdict(self._make_measures_array)
+        processed_keys = set()
         with rados.ReadOpCtx() as op:
-            for metric_id in metric_ids:
-                sack = self.sack_for_metric(metric_id)
-                key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-                omaps, ret = self.ioctx.get_omap_vals(op, "", key_prefix, -1)
-                self.ioctx.operate_read_op(op, str(sack),
-                                           flag=self.OMAP_READ_FLAGS)
-                # NOTE(sileht): after reading the libradospy, I'm
-                # not sure that ret will have the correct value
-                # get_omap_vals transforms the C int to python int
-                # before operate_read_op is called, I dunno if the int
-                # content is copied during this transformation or if
-                # this is a pointer to the C int, I think it's copied...
-                try:
-                    ceph.errno_to_exception(ret)
-                except rados.ObjectNotFound:
-                    # Object has been deleted, so this is just a stalled entry
-                    # in the OMAP listing, ignore
-                    continue
-
-                m = self._make_measures_array()
+            omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
+            self.ioctx.operate_read_op(op, str(sack),
+                                       flag=self.OMAP_READ_FLAGS)
+            # NOTE(sileht): after reading the libradospy, I'm
+            # not sure that ret will have the correct value
+            # get_omap_vals transforms the C int to python int
+            # before operate_read_op is called, I dunno if the int
+            # content is copied during this transformation or if
+            # this is a pointer to the C int, I think it's copied...
+            try:
+                ceph.errno_to_exception(ret)
+            except rados.ObjectNotFound:
+                # Object has been deleted, so this is just a stalled entry
+                # in the OMAP listing, ignore
+                pass
+            else:
                 for k, v in omaps:
-                    m = numpy.concatenate(
-                        (m, self._unserialize_measures(k, v)))
-                    processed_keys[sack].append(k)
-
-                measures[metric_id] = m
+                    processed_keys.add(k)
+                    try:
+                        prefix, metric_id, random_uuid, tstamp = k.split("_")
+                    except ValueError:
+                        LOG.warning("Unable to parse measure file name %s", f)
+                        continue
+                    measures[metric_id] = numpy.concatenate(
+                        (measures[metric_id], self._unserialize_measures(k, v))
+                    )
 
         yield measures
 
         # Now clean omap
         with rados.WriteOpCtx() as op:
-            for sack, keys in six.iteritems(processed_keys):
-                # NOTE(sileht): come on Ceph, no return code
-                # for this operation ?!!
-                self.ioctx.remove_omap_keys(op, tuple(keys))
-                self.ioctx.operate_write_op(op, str(sack),
-                                            flags=self.OMAP_WRITE_FLAGS)
+            # NOTE(sileht): come on Ceph, no return code
+            # for this operation ?!!
+            self.ioctx.remove_omap_keys(op, tuple(processed_keys))
+            self.ioctx.operate_write_op(op, str(sack),
+                                        flags=self.OMAP_WRITE_FLAGS)

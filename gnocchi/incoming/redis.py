@@ -24,12 +24,21 @@ from gnocchi import incoming
 class RedisStorage(incoming.IncomingDriver):
 
     _SCRIPTS = {
-        "process_measure_for_metric": """
-local llen = redis.call("LLEN", KEYS[1])
--- lrange is inclusive on both ends, decrease to grab exactly n items
-if llen > 0 then llen = llen - 1 end
-return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
-""",
+        "process_measure_for_sack": """
+local results = {}
+local metric_id_extractor = "[^%s]*%s([^%s]*)"
+local metric_with_measures = redis.call("KEYS", KEYS[1] .. "%s*")
+for i, sack_metric in ipairs(metric_with_measures) do
+    local llen = redis.call("LLEN", sack_metric)
+    local metric_id = sack_metric:gmatch(metric_id_extractor)()
+    -- lrange is inclusive on both ends, decrease to grab exactly n items
+    if llen > 0 then llen = llen - 1 end
+    results[metric_id] = {
+        llen, table.concat(redis.call("LRANGE", sack_metric, 0, llen), "")
+    }
+end
+return results
+""" % (redis.SEP, redis.SEP, redis.SEP redis.SEP),
     }
 
     def __init__(self, conf, greedy=True):
@@ -113,23 +122,16 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
         return bool(self._client.exists(self._build_measure_path(metric_id)))
 
     @contextlib.contextmanager
-    def process_measure_for_metrics(self, metric_ids):
-        measures = {}
-        pipe = self._client.pipeline(transaction=False)
-        for metric_id in metric_ids:
-            key = self._build_measure_path(metric_id)
-            self._scripts['process_measure_for_metric'](
-                keys=[key],
-                client=pipe,
-            )
+    def process_measure_for_sack(self, sack):
+        results = self._scripts['process_measure_for_sack'](keys=[str(sack)])
 
-        results = pipe.execute()
-        for metric_id, (item_len, data) in six.moves.zip(metric_ids, results):
+        for metric_id, (item_len, data) in results:
             measures[metric_id] = self._unserialize_measures(metric_id, data)
 
         yield measures
 
-        for metric_id, (item_len, data) in six.moves.zip(metric_ids, results):
+        pipe = self._client.pipeline()
+        for metric_id, (item_len, data) in results:
             key = self._build_measure_path(metric_id)
             # ltrim is inclusive, bump 1 to remove up to and including nth item
             pipe.ltrim(key, item_len + 1, -1)
