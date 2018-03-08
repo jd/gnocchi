@@ -97,35 +97,44 @@ return ids
         }
         return ts
 
-    def _list_split_keys(self, metric, aggregations, version=3):
-        key = self._metric_key(metric)
+    def _list_split_keys(self, metrics_and_aggregations, version=3):
         pipe = self._client.pipeline(transaction=False)
-        pipe.exists(key)
-        for aggregation in aggregations:
-            self._scripts["list_split_keys"](
-                keys=[key], args=[self._aggregated_field_for_split(
-                    aggregation.method, "*",
-                    version, aggregation.granularity)],
-                client=pipe,
-            )
+        # Keep an ordered list of metrics
+        metrics = list(metrics_and_aggregations.keys())
+        for metric in metrics:
+            key = self._metric_key(metric)
+            pipe.exists(key)
+            aggregations = metrics_and_aggregations[metric]
+            for aggregation in aggregations:
+                self._scripts["list_split_keys"](
+                    keys=[key], args=[self._aggregated_field_for_split(
+                        aggregation.method, "*",
+                        version, aggregation.granularity)],
+                    client=pipe,
+                )
         results = pipe.execute()
-        metric_exists_p = results.pop(0)
-        if not metric_exists_p:
-            raise storage.MetricDoesNotExist(metric)
-        keys = {}
-        for aggregation, k in six.moves.zip(aggregations, results):
-            if not k:
-                keys[aggregation] = set()
-                continue
-            timestamps, methods, granularities = list(zip(*k))
-            timestamps = utils.to_timestamps(timestamps)
-            granularities = map(utils.to_timespan, granularities)
-            keys[aggregation] = {
-                carbonara.SplitKey(timestamp,
-                                   sampling=granularity)
-                for timestamp, granularity
-                in six.moves.zip(timestamps, granularities)
-            }
+        keys = collections.defaultdict(dict)
+        for metric in metrics:
+            metric_exists_p = results.pop(0)
+            if not metric_exists_p:
+                raise storage.MetricDoesNotExist(metric)
+            aggregations = metrics_and_aggregations[metric]
+            keys_for_aggregations = results[:len(aggregations)]
+            del results[:len(aggregations)]
+            for aggregation, k in six.moves.zip(
+                    aggregations, keys_for_aggregations):
+                if not k:
+                    keys[metric][aggregation] = set()
+                    continue
+                timestamps, methods, granularities = list(zip(*k))
+                timestamps = utils.to_timestamps(timestamps)
+                granularities = map(utils.to_timespan, granularities)
+                keys[metric][aggregation] = {
+                    carbonara.SplitKey(timestamp,
+                                       sampling=granularity)
+                    for timestamp, granularity
+                    in six.moves.zip(timestamps, granularities)
+                }
         return keys
 
     def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
