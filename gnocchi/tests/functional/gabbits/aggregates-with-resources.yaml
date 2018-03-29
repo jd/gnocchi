@@ -127,7 +127,7 @@ tests:
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(aggregate mean (metric cpu.util mean))"
       poll:
-        count: 10
+        count: 60
         delay: 1
       response_json_paths:
         $.references.`len`: 3
@@ -146,7 +146,7 @@ tests:
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(metric (cpu.util mean) (cpu.idle mean))"
       poll:
-        count: 10
+        count: 60
         delay: 1
       response_json_paths:
         $.references.`len`: 3
@@ -174,7 +174,7 @@ tests:
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(metric cpu.util mean)"
       poll:
-        count: 10
+        count: 60
         delay: 1
       response_json_paths:
         $.references.`len`: 3
@@ -201,7 +201,7 @@ tests:
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(metric (cpu.* mean) (*way mean))"
       poll:
-        count: 10
+        count: 60
         delay: 1
       response_json_paths:
         $.references.`len`: 3
@@ -230,7 +230,7 @@ tests:
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(metric cpu.* mean)"
       poll:
-        count: 10
+        count: 60
         delay: 1
       response_json_paths:
         $.references.`len`: 3
@@ -258,7 +258,7 @@ tests:
         search: "id = '1ed9c196-4c9f-4ba8-a5be-c9a71a82aac4'"
         operations: "(metric (cpu.util mean) (cpu.util mean))"
       poll:
-        count: 10
+        count: 60
         delay: 1
       response_json_paths:
         $.references.`len`: 1
