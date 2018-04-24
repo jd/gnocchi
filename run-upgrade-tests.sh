@@ -40,8 +40,12 @@ inject_data() {
 
     if [ "$have_resource_type_post" ]
     then
-        gnocchi resource-type create ext > /dev/null
-        gnocchi resource create ext --attribute id:$RESOURCE_ID_EXT -n metric:high > /dev/null
+        gnocchi resource create -n metric:high $RESOURCE_ID_EXT > /dev/null
+
+        # Create a resource with an history
+        gnocchi resource-type create ext --attribute someattr:string:false:max_length=32 > /dev/null
+        gnocchi resource create --type ext --attribute someattr:foobar -n metric:high historized_resource > /dev/null
+        gnocchi resource update --type ext --attribute someattr:foobaz historized_resource > /dev/null
     fi
 
     {
