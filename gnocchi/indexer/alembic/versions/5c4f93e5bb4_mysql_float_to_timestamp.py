@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-#
 # Copyright 2016 OpenStack Foundation
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,7 +13,7 @@
 #    under the License.
 #
 
-"""mysql_float_to_timestamp
+"""Convert MySQL float to timestamp.
 
 Revision ID: 5c4f93e5bb4
 Revises: 7e6f9d542f8b
@@ -24,6 +22,7 @@ Create Date: 2016-07-25 15:36:36.469847
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 from sqlalchemy.sql import func
 

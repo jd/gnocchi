@@ -18,12 +18,13 @@ import operator
 import uuid
 
 import mock
+
 import numpy
 
 from gnocchi import archive_policy
 from gnocchi import indexer
-from gnocchi.tests import base as tests_base
 from gnocchi import utils
+from gnocchi.tests import base as tests_base
 
 
 class MockException(Exception):
