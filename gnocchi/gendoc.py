@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from __future__ import absolute_import
+
 import json
 import os
 import subprocess
@@ -21,10 +22,14 @@ import sys
 import tempfile
 
 import jinja2
+
 from oslo_config import generator
+
 import six
 import six.moves
+
 import webob.request
+
 import yaml
 
 from gnocchi.tests import test_rest
@@ -91,9 +96,8 @@ def _request_to_httpdomain(request):
 
 
 def _format_request_reply(request, response):
-    return (_request_to_httpdomain(request)
-            + "\n"
-            + _response_to_httpdomain(response))
+    return (_request_to_httpdomain(request) +
+            "\n" + _response_to_httpdomain(response))
 
 
 class ScenarioList(list):
@@ -214,8 +218,8 @@ def setup(app):
             request = webapp.RequestClass.from_file(fake_file)
 
             # TODO(jd) Fix this lame bug in webob < 1.7
-            if (hasattr(webob.request, "http_method_probably_has_body")
-               and request.method == "DELETE"):
+            if (hasattr(webob.request, "http_method_probably_has_body") and
+               request.method == "DELETE"):
                 # Webob has a bug it does not read the body for DELETE, l4m3r
                 clen = request.content_length
                 if clen is None:
