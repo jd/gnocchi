@@ -31,6 +31,7 @@ import webob.exc
 
 from gnocchi import chef
 from gnocchi.cli import metricd
+from gnocchi.rest import http_proxy_to_wsgi
 from gnocchi import exceptions
 from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
@@ -178,7 +179,8 @@ def load_app(conf, not_implemented_middleware=True):
     appname = "gnocchi+" + conf.api.auth_mode
     app = deploy.loadapp("config:" + cfg_path, name=appname,
                          global_conf={'configkey': configkey})
-    return cors.CORS(app, conf=conf)
+    return http_proxy_to_wsgi.HTTPProxyToWSGI(
+        cors.CORS(app, conf=conf), conf=conf)
 
 
 def _setup_app(root, conf, not_implemented_middleware):
